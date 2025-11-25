@@ -1,0 +1,99 @@
+{
+  "name": "My workflow 10",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f9082c7b-ddd7-4b30-8102-59a7b70b6af9",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3e867d9f-f001-44b6-9a4d-f17bfe6bf126",
+      "name": "Webhook",
+      "webhookId": "f9082c7b-ddd7-4b30-8102-59a7b70b6af9"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node - ensure timestamp is Date and return only body\nfunction normalizeBody(source) {\n  const raw = (source && source.json) ? (source.json.body ?? source.json) : (source.body ?? source);\n  const doc = { ...raw };\n\n  if (doc && doc.timestamp) {\n    const parsed = new Date(doc.timestamp);\n    if (!Number.isNaN(parsed.getTime())) doc.timestamp = parsed;\n    // else leave as-is (you can force fallback if you want)\n  }\n\n  if (doc && doc.total !== undefined && typeof doc.total !== 'number') {\n    const n = Number(doc.total);\n    if (!Number.isNaN(n)) doc.total = n;\n  }\n\n  if (doc && Array.isArray(doc.items)) {\n    doc.items = doc.items.map(it => {\n      const copy = { ...it };\n      if (copy.qty !== undefined && typeof copy.qty !== 'number') {\n        const q = Number(copy.qty);\n        if (!Number.isNaN(q)) copy.qty = q;\n      }\n      if (copy.price !== undefined && typeof copy.price !== 'number') {\n        const p = Number(copy.price);\n        if (!Number.isNaN(p)) copy.price = p;\n      }\n      return copy;\n    });\n  }\n\n  return doc;\n}\n\nif (typeof items === 'undefined') {\n  // per-item mode\n  return { json: normalizeBody(item) };\n} else {\n  return items.map(i => ({ json: normalizeBody(i) }));\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "eed7a50c-3c53-4d6f-a4c7-7668fe165ae6",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "Orders",
+        "fields": "userEmail,restaurants,items,address,total,timestamp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "174737fb-d4af-440f-aed0-1e6def6179ee",
+      "name": "Insert documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "r6weDqpmFYxlbIK1",
+          "name": "MongoDB account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Insert documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert documents": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f10c75dd-ea39-4ffe-a3bd-95df25f78d6f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f10cdcae1574ae823d7f63ce2bebd30924d015ae31623f7e0d76d6fa91fc05e6"
+  },
+  "id": "07L7vabvkGxI8mI6",
+  "tags": []
+}
